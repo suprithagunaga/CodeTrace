@@ -1,0 +1,417 @@
+{
+  "info": {
+    "name": "CodeTrace API",
+    "description": "REST API of the CodeTrace Java similarity analyzer. Run 'Create analysis' first: it stores analysisId and comparisonId for the other requests. In 'Create analysis', re-select the three files from sample-data/ (Postman needs local file paths).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "analysisId",
+      "value": ""
+    },
+    {
+      "key": "comparisonId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "health"
+          ]
+        },
+        "description": "Application and database status. 200 when the database is reachable, 503 otherwise."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is UP', () => pm.expect(pm.response.json().database.status).to.eql('UP'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public configuration",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/config",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "config"
+          ]
+        },
+        "description": "Upload limits, retention settings and algorithm defaults."
+      }
+    },
+    {
+      "name": "Create analysis",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/analyses",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "analyses"
+          ]
+        },
+        "description": "multipart/form-data: two or more 'files' parts (.java) plus optional title and algorithm options.",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "files",
+              "type": "file",
+              "src": "sample-data/BubbleSort.java",
+              "description": "Select sample-data/BubbleSort.java"
+            },
+            {
+              "key": "files",
+              "type": "file",
+              "src": "sample-data/ArraySorter.java",
+              "description": "Select sample-data/ArraySorter.java"
+            },
+            {
+              "key": "files",
+              "type": "file",
+              "src": "sample-data/LibraryManager.java",
+              "description": "Select sample-data/LibraryManager.java"
+            },
+            {
+              "key": "title",
+              "value": "Postman sample run",
+              "type": "text"
+            },
+            {
+              "key": "kgramSize",
+              "value": "5",
+              "type": "text",
+              "disabled": true
+            },
+            {
+              "key": "windowSize",
+              "value": "4",
+              "type": "text",
+              "disabled": true
+            },
+            {
+              "key": "jaccardNgram",
+              "value": "3",
+              "type": "text",
+              "disabled": true
+            },
+            {
+              "key": "normalizeIdentifiers",
+              "value": "true",
+              "type": "text",
+              "disabled": true
+            },
+            {
+              "key": "normalizeNumbers",
+              "value": "false",
+              "type": "text",
+              "disabled": true
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('analysisId', body.analysis.id);",
+              "if (body.comparisons.length) pm.collectionVariables.set('comparisonId', body.comparisons[0].id);",
+              "const n = body.analysis.fileCount;",
+              "pm.test('n*(n-1)/2 comparisons', () => pm.expect(body.comparisons.length).to.eql(n * (n - 1) / 2));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "List analyses (history)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/analyses?page=0&size=10&sort=createdAt&direction=desc&q=",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "analyses"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "0"
+            },
+            {
+              "key": "size",
+              "value": "10"
+            },
+            {
+              "key": "sort",
+              "value": "createdAt"
+            },
+            {
+              "key": "direction",
+              "value": "desc"
+            },
+            {
+              "key": "q",
+              "value": "",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Paginated history. sort: createdAt|title|fileCount|comparisonCount|maxScore; direction: asc|desc; q searches title and filenames."
+      }
+    },
+    {
+      "name": "Get analysis report",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/analyses/{{analysisId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "analyses",
+            "{{analysisId}}"
+          ]
+        },
+        "description": "Complete saved report: summary, configuration, files and all pair results."
+      }
+    },
+    {
+      "name": "Get comparison detail",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/analyses/{{analysisId}}/comparisons/{{comparisonId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "analyses",
+            "{{analysisId}}",
+            "comparisons",
+            "{{comparisonId}}"
+          ]
+        },
+        "description": "Scores, metadata, matching regions (offsets + lines), source text and normalized token lines (when retained)."
+      }
+    },
+    {
+      "name": "Export CSV",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/analyses/{{analysisId}}/export?format=csv",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "analyses",
+            "{{analysisId}}",
+            "export"
+          ],
+          "query": [
+            {
+              "key": "format",
+              "value": "csv"
+            }
+          ]
+        },
+        "description": "CSV attachment (formula-injection safe)."
+      }
+    },
+    {
+      "name": "Export JSON",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/analyses/{{analysisId}}/export?format=json",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "analyses",
+            "{{analysisId}}",
+            "export"
+          ],
+          "query": [
+            {
+              "key": "format",
+              "value": "json"
+            }
+          ]
+        },
+        "description": "JSON attachment of the saved report."
+      }
+    },
+    {
+      "name": "Dashboard",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/dashboard",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "dashboard"
+          ]
+        },
+        "description": "Totals, score histogram (10 buckets), top pairs and recent analyses."
+      }
+    },
+    {
+      "name": "Delete analysis",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/analyses/{{analysisId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "analyses",
+            "{{analysisId}}"
+          ]
+        },
+        "description": "Deletes the analysis and all associated records (204). 404 if unknown."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('204 No Content', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error example: invalid UUID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/analyses/not-a-uuid",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "analyses",
+            "not-a-uuid"
+          ]
+        },
+        "description": "Returns 400 with the uniform ApiError body."
+      }
+    }
+  ]
+}

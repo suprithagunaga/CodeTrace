@@ -1,0 +1,75 @@
+# CodeTrace backend configuration. Every value can be overridden with an environment variable
+# (see ../.env.example). Defaults match docker-compose.yml for local development only.
+spring:
+  application:
+    name: codetrace
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/codetrace}
+    username: ${DB_USERNAME:codetrace}
+    password: ${DB_PASSWORD:codetrace}
+    hikari:
+      connection-timeout: 5000
+      maximum-pool-size: 10
+  jpa:
+    open-in-view: false
+    # Flyway owns the schema; Hibernate never creates or alters tables.
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: ${UPLOAD_MAX_FILE_SIZE:1MB}
+      max-request-size: ${UPLOAD_MAX_REQUEST_SIZE:30MB}
+      # files are held in memory below this size and never persisted by the application
+      file-size-threshold: 1MB
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-stacktrace: never
+    include-message: never
+  tomcat:
+    max-swallow-size: 40MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: INFO
+    com.codetrace: INFO
+
+codetrace:
+  version: ${APP_VERSION:1.0.0}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+  upload:
+    max-files: ${UPLOAD_MAX_FILES:50}
+    # per-file limit enforced by the application (bytes); keep below spring.servlet.multipart.max-file-size
+    max-file-bytes: ${UPLOAD_MAX_FILE_BYTES:524288}
+    allowed-extensions: .java
+  retention:
+    # true: keep source text in source_file_content so the side-by-side view works later
+    store-source: ${RETENTION_STORE_SOURCE:true}
+    # analyses older than this many days are deleted automatically (0 = keep until deleted manually)
+    days: ${RETENTION_DAYS:30}
+    cleanup-cron: "0 0 3 * * *"
+  similarity:
+    k-gram-size: 5
+    window-size: 4
+    jaccard-ngram: 3
+    normalize-identifiers: true
+    normalize-numbers: false

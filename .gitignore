@@ -1,0 +1,37 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Backend build output
+backend/target/
+*.class
+*.jar
+!**/.mvn/wrapper/*.jar
+hs_err_pid*.log
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+*.log
+npm-debug.log*
+
+# Uploads / temporary files (the app keeps uploads in memory, but never commit any)
+uploads/
+tmp/
+*.tmp
+
+# IDEs and OS files
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+.DS_Store
+Thumbs.db
+
+backend/pg_hba.conf.backup
